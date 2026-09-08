@@ -13,7 +13,7 @@ test("student planning flow persists classes, preferences, searches and comparis
   try {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "Good flights. Better timing." }),
+      page.getByRole("heading", { name: "Where to after class?" }),
     ).toBeVisible();
     await expect(page.getByText("Demo flight data")).toBeVisible();
     await page
@@ -50,11 +50,11 @@ test("student planning flow persists classes, preferences, searches and comparis
       .getByRole("button", { name: "Find my flights", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "6 flights that fit" }),
+      page.getByRole("heading", { name: "6 flights to consider" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Why this flight" }).first().click();
     await expect(
-      page.getByRole("heading", { name: "How this flight fits" }),
+      page.getByRole("heading", { name: "The tradeoffs" }),
     ).toBeVisible();
     await expect(
       page.getByText("Each bar shows fit for that factor.", { exact: false }),
@@ -192,7 +192,7 @@ test("comparison selection is capped at three and sorting/filtering work", async
       .getByRole("button", { name: "Find my flights", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: /flights that fit/ }),
+      page.getByRole("heading", { name: /flights to consider/ }),
     ).toBeVisible();
     await page.getByLabel("Sort flights").selectOption("cost");
     const totals = await page.locator(".price > strong").allTextContents();

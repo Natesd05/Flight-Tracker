@@ -121,7 +121,9 @@ function Leg({ segments, label }: { segments: Segment[]; label: string }) {
       <div className="flight-line">
         <small>
           {duration(minutes)} ·{" "}
-          {segments.length === 1 ? "Nonstop" : `${segments.length - 1} stop`}
+          {segments.length === 1
+            ? "Nonstop"
+            : `${segments.length - 1} stop${segments.length > 2 ? "s" : ""}`}
         </small>
         <div>
           <i />
@@ -134,7 +136,7 @@ function Leg({ segments, label }: { segments: Segment[]; label: string }) {
           {segments
             .slice(0, -1)
             .map((s) => s.destination)
-            .join(" · ") || "Direct flight"}
+            .join(" · ") || "No connection"}
         </small>
       </div>
       <div className="endpoint">
@@ -168,7 +170,7 @@ export function FlightCard({
       <div className="card-top">
         <div className="airline">
           <span className="airline-icon">
-            <Plane size={19} />
+            {rank ? String(rank).padStart(2, "0") : <Bookmark size={17} />}
           </span>
           <strong>
             {[
@@ -188,7 +190,7 @@ export function FlightCard({
             </span>
           )}
         </div>
-        {rank === 1 && <span className="badge">Best fit for you</span>}
+        {rank === 1 && <span className="badge">Highest ranked</span>}
         <span className="score">
           {item.score.toFixed(0)}
           <small>/100 fit</small>
@@ -225,7 +227,7 @@ export function FlightCard({
             <Check size={15} />
           )}
           {item.conflicts.length
-            ? `${item.conflicts.length} class conflict${item.conflicts.length === 1 ? "" : "s"}`
+            ? `${item.conflicts.length} class conflict${item.conflicts.length === 1 ? "" : "s"} · ${Math.round(item.conflict_minutes)} min missed`
             : "No class conflicts"}
         </span>
         <span>
@@ -242,7 +244,7 @@ export function FlightCard({
       </div>
       {expanded && (
         <div className="flight-details">
-          <h4>How this flight fits</h4>
+          <h4>The tradeoffs</h4>
           <ul>
             {item.explanations.map((x) => (
               <li key={x}>{x}</li>
@@ -252,14 +254,19 @@ export function FlightCard({
             {(Object.keys(weightLabels) as (keyof Weights)[]).map((k) => (
               <div key={k}>
                 <span>{weightLabels[k]}</span>
-                <meter min="0" max="1" value={1 - item.penalties[k]} />
+                <meter
+                  aria-label={`${weightLabels[k]} fit`}
+                  min="0"
+                  max="1"
+                  value={1 - item.penalties[k]}
+                />
                 <b>{Math.round((1 - item.penalties[k]) * 100)}%</b>
               </div>
             ))}
           </div>
           <small>
-            Each bar shows fit for that factor. Overall fit uses your selected
-            weights; higher is better.
+            Each bar shows fit for that factor. The overall score combines them
+            using the priorities from this search; higher is better.
           </small>
           <h4>Flight details · all times local to each airport</h4>
           {[...item.itinerary.outbound, ...item.itinerary.inbound].map(

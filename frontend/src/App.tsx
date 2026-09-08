@@ -7,7 +7,6 @@ import {
   Check,
   Compass,
   GraduationCap,
-  LayoutDashboard,
   LoaderCircle,
   Plane,
   Plus,
@@ -277,10 +276,10 @@ export default function App() {
             <Plane size={24} />
           </span>
           <span>
-            Student Flight<span className="brand-sub">P L A N N E R</span>
+            FlightPlanner<span className="brand-sub">BETWEEN CLASSES</span>
           </span>
         </a>
-        <div className="workspace-label">YOUR TRAVEL NOTEBOOK</div>
+        <div className="workspace-label">TRIP PLANNING</div>
         <nav aria-label="Main navigation">
           {navigation.map((n, index) => (
             <button
@@ -304,12 +303,14 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-note">
-          <GraduationCap size={25} />
-          <strong>
-            A little less planning.
-            <br />A little more going.
-          </strong>
-          <p>Your classes and budget come along for the ride.</p>
+          <span className="note-label">Before you search</span>
+          <p>
+            A cheap Friday flight can cost you an afternoon of classes. Check
+            the time away, too.
+          </p>
+          <button className="text-button" onClick={() => setPage("schedule")}>
+            Review your week <ArrowRight size={14} />
+          </button>
         </div>
         <div className="profile">
           <span className="avatar">
@@ -321,15 +322,14 @@ export default function App() {
           </span>
           <div>
             <strong>{prefs?.name || "Demo student"}</strong>
-            <small>Student · Demo profile</small>
+            <small>Shared local profile</small>
           </div>
         </div>
       </aside>
       <div className="main-shell">
         <header className="topbar">
           <span>
-            <LayoutDashboard size={15} /> My notebook{" "}
-            <span className="slash">/</span>{" "}
+            FlightPlanner <span className="slash">/</span>{" "}
             <strong>{navigation.find((n) => n.id === page)?.label}</strong>
           </span>
           <span className="demo-pill">
@@ -341,40 +341,33 @@ export default function App() {
           <div className="page-heading">
             <div className="eyebrow">
               {page === "search"
-                ? "FIELD NOTES / A LITTLE FURTHER FROM CAMPUS"
-                : "FIELD NOTES / THE LITTLE DETAILS"}
+                ? "01 / PLAN A TRIP"
+                : page === "schedule"
+                  ? "02 / THE WEEK AHEAD"
+                  : page === "saved"
+                    ? "03 / THE SHORTLIST"
+                    : "04 / YOUR DEFAULTS"}
             </div>
             <div className="heading-row">
               <div>
                 <h1>
-                  {page === "search" ? (
-                    <>
-                      Good flights.{" "}
-                      <span className="ink-underline">Better timing.</span>
-                    </>
-                  ) : page === "schedule" ? (
-                    "Your week, accounted for."
-                  ) : page === "saved" ? (
-                    "A shortlist worth saving."
-                  ) : (
-                    "Travel on your terms."
-                  )}
+                  {page === "search"
+                    ? "Where to after class?"
+                    : page === "schedule"
+                      ? "My schedule"
+                      : page === "saved"
+                        ? "Saved flights"
+                        : "The way you travel"}
                 </h1>
                 <p>
                   {page === "search"
-                    ? "Find a trip that fits your life between lectures."
+                    ? "Compare the fare, the hours away, and the classes you’d miss."
                     : page === "schedule"
                       ? `Classes and exceptions are evaluated in ${prefs?.timezone || "your timezone"}.`
                       : page === "saved"
                         ? "Compare up to three flights and see what works best for you."
-                        : "Set your starting point, budget, and what matters most."}
+                        : "Set these once. Adjust the priorities for each trip."}
                 </p>
-              </div>
-              <div className="trip-note" aria-hidden="true">
-                <svg viewBox="0 0 115 45" fill="none">
-                  <path d="M4 9C28 35 57 3 67 17S47 43 37 28 86 13 109 35M94 33l16 3-5-15" />
-                </svg>
-                leave room for a little adventure
               </div>
             </div>
           </div>
@@ -399,8 +392,11 @@ export default function App() {
             </div>
           ) : !prefs ? (
             <div className="empty">
-              <h2>Let’s get connected</h2>
-              <p>Start the backend and database, then reload your planner.</p>
+              <h2>The planner couldn’t connect</h2>
+              <p>
+                Your schedule and flights couldn’t be loaded. Try connecting
+                again.
+              </p>
               <button className="button primary" onClick={() => void load()}>
                 Retry connection
               </button>
@@ -417,7 +413,7 @@ export default function App() {
                       <span>
                         <small>Your weekly schedule</small>
                         <strong>
-                          {schedule.classes.length} classes <em>in the plan</em>
+                          {schedule.classes.length} classes <em>each week</em>
                         </strong>
                       </span>
                       <button
@@ -452,7 +448,7 @@ export default function App() {
                         <small>Your home airport</small>
                         <strong>
                           {prefs.home_airport}{" "}
-                          <em>{prefs.transit_minutes} min from campus</em>
+                          <em>{prefs.transit_minutes} min from home</em>
                         </strong>
                       </span>
                       <button
@@ -473,7 +469,7 @@ export default function App() {
                         }}
                       >
                         <div className="section-title">
-                          <h2>Where are we going?</h2>
+                          <h2>Route & dates</h2>
                           <Plane size={20} />
                         </div>
                         <AirportSelect
@@ -547,7 +543,8 @@ export default function App() {
                           </Field>
                         </div>
                         <small className="helper">
-                          Explore up to 4 departure and 4 return dates.
+                          Use the same date twice for a fixed trip, or a range
+                          of up to 4 days.
                         </small>
                         <div className="field-grid">
                           <Field label="Min days away">
@@ -578,8 +575,8 @@ export default function App() {
                           </Field>
                         </div>
                         <p className="helper">
-                          Days away = elapsed time from leaving home to
-                          returning home, divided by 24 hours.
+                          Days away includes airport travel and the stay. A
+                          48-hour trip counts as 2 days.
                         </p>
                         <details className="advanced">
                           <summary>
@@ -644,17 +641,18 @@ export default function App() {
                           ) : (
                             <Search size={18} />
                           )}
-                          {searching ? "Finding your fit…" : "Find my flights"}
+                          {searching ? "Comparing flights…" : "Find my flights"}
                           <ArrowRight size={17} />
                         </button>
                       </form>
                       <section className="panel priorities">
                         <div className="section-title">
-                          <h2>Your priorities</h2>
+                          <h2>What matters this trip</h2>
                           <Settings2 size={18} />
                         </div>
                         <p className="helper">
-                          Move the sliders, then search to update your ranking.
+                          Give more weight to the things you care about. Search
+                          again to apply changes.
                         </p>
                         <WeightEditor
                           weights={query.weights}
@@ -667,13 +665,13 @@ export default function App() {
                         <div>
                           <h2>
                             {result
-                              ? `${result.results.length} flights that fit`
-                              : "Your next trip starts here"}
+                              ? `${visible.length} flight${visible.length === 1 ? "" : "s"} to consider`
+                              : "The trip at a glance"}
                           </h2>
                           <p>
                             {result
                               ? `${result.evaluated_count} options evaluated · ${result.provider === "mock" ? "Sample fares, not bookable" : result.provider}`
-                              : "Your schedule. Your budget. A better way to get away."}
+                              : "Round trip · One adult · Economy"}
                           </p>
                         </div>
                         {result && (
@@ -698,9 +696,11 @@ export default function App() {
                       <div className="context-note">
                         <GraduationCap size={20} />
                         <span>
-                          <strong>Built around your student life.</strong>{" "}
-                          Rankings account for classes, airport travel, and the
-                          time you’re away.
+                          <strong>
+                            Class checks cover the whole time away.
+                          </strong>{" "}
+                          From leaving home to getting back, including the stay
+                          and airport travel.
                         </span>
                       </div>
                       {result && (
@@ -748,11 +748,11 @@ export default function App() {
                           )}
                           {Object.keys(result.rejected).length > 0 && (
                             <p className="helper">
-                              Excluded by hard constraints:{" "}
+                              Left out by your requirements:{" "}
                               {Object.entries(result.rejected)
                                 .map(([k, v]) => `${k} (${v})`)
                                 .join(" · ")}
-                              . An option may fail multiple constraints.
+                              . A flight can fail more than one requirement.
                             </p>
                           )}
                         </>
@@ -815,53 +815,56 @@ export default function App() {
                         )
                       ) : (
                         <div className="empty search-empty">
-                          <div className="notebook-sketch" aria-hidden="true">
-                            <span className="sketch-label">
-                              somewhere between classes & clouds
-                            </span>
-                            <svg viewBox="0 0 320 150" fill="none">
-                              <circle
-                                className="sketch-sun"
-                                cx="249"
-                                cy="40"
-                                r="22"
-                              />
-                              <path
-                                className="sketch-trail"
-                                d="M28 114c37 18 78-8 69-29-9-23-43-4-22 14s80 10 120-39"
-                              />
-                              <path
-                                className="sketch-plane"
-                                d="m182 45 90-23-37 73-17-33-36-17Zm36 17 54-40M218 62l-4 23 12-10"
-                              />
-                              <path
-                                className="sketch-cloud"
-                                d="M25 54h57c6-14-9-23-18-17-4-23-34-17-31 2-10-3-18 5-8 15ZM240 125h48M250 133h23M130 27v12m-6-6h12"
-                              />
-                            </svg>
-                            <span className="sketch-caption">
-                              a change of scenery sounds nice.
-                            </span>
+                          <span className="note-label">YOUR ROUTE</span>
+                          <div
+                            className="route-preview"
+                            aria-label={`${query.origin} to ${query.destination}, round trip`}
+                          >
+                            <span>{query.origin}</span>
+                            <ArrowRight size={26} />
+                            <span>{query.destination}</span>
                           </div>
-                          <h3>A weekend away, without the guesswork.</h3>
-                          <p>
-                            Choose your dates and find flights. We’ll show what
-                            each trip costs and which classes it overlaps.
+                          <p className="route-dates">
+                            {dateLabel(query.departure_from)}
+                            {query.departure_to !== query.departure_from &&
+                              `–${dateLabel(query.departure_to)}`}{" "}
+                            · {dateLabel(query.return_from)}
+                            {query.return_to !== query.return_from &&
+                              `–${dateLabel(query.return_to)}`}
                           </p>
-                          <div className="empty-points">
-                            <span>
-                              <Check size={15} />
-                              Round-trip cost
-                            </span>
-                            <span>
-                              <Check size={15} />
-                              Class-aware ranking
-                            </span>
-                            <span>
-                              <Check size={15} />
-                              Clear tradeoffs
-                            </span>
-                          </div>
+                          <h3>
+                            Start with the dates. Then weigh the tradeoffs.
+                          </h3>
+                          <p>
+                            Each result puts the full flight cost next to the
+                            time away and any missed classes.
+                          </p>
+                          <dl className="trip-checklist">
+                            <div>
+                              <dt>Flight budget</dt>
+                              <dd>{money(prefs.budget)}</dd>
+                            </div>
+                            <div>
+                              <dt>Bags + ground travel</dt>
+                              <dd>
+                                {money(
+                                  prefs.baggage_estimate +
+                                    prefs.ground_estimate,
+                                )}{" "}
+                                included
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>At the airport before takeoff</dt>
+                              <dd>{prefs.buffer_minutes} min</dd>
+                            </div>
+                          </dl>
+                          {mock && (
+                            <p className="sample-note">
+                              This local demo uses sample fares. You can compare
+                              and save them, but they aren’t bookable.
+                            </p>
+                          )}
                         </div>
                       )}
                       {history.length > 0 && (
@@ -1225,7 +1228,7 @@ export default function App() {
                 >
                   <div className="two-col">
                     <section className="panel">
-                      <h2>You & your starting point</h2>
+                      <h2>Home & airport</h2>
                       <Field label="Student name">
                         <input
                           required
@@ -1371,8 +1374,8 @@ export default function App() {
                       <div className="context-note">
                         <GraduationCap size={22} />
                         <span>
-                          This MVP uses one shared demo student profile without
-                          sign-in.
+                          Everyone using this local app shares the same
+                          schedule, preferences, and saved flights.
                         </span>
                       </div>
                     </section>
@@ -1408,9 +1411,9 @@ export default function App() {
                         <section className="panel compare-panel">
                           <h2>Side-by-side comparison</h2>
                           <p className="helper">
-                            Saved snapshots reflect the schedule, budget, and
-                            priorities at search time. Re-run a search for
-                            updated rankings.
+                            These are the prices and scores from when you
+                            searched. Search again after changing your schedule
+                            or budget.
                           </p>
                           <div className="table-scroll">
                             <table>
@@ -1543,7 +1546,7 @@ export default function App() {
                   ) : (
                     <div className="empty">
                       <Bookmark size={35} />
-                      <h2>Your shortlist is waiting</h2>
+                      <h2>Nothing saved yet</h2>
                       <p>
                         Save flights from your results to compare them here.
                       </p>
@@ -1560,7 +1563,7 @@ export default function App() {
             </>
           )}
           <footer>
-            <span>STUDENT FLIGHT PLANNER</span>
+            <span>FLIGHTPLANNER / BETWEEN CLASSES</span>
             <p>
               {mock
                 ? "Demo itineraries · Prices are illustrative · No booking or payments"

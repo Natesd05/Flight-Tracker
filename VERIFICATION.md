@@ -2,7 +2,17 @@
 
 Executed on September 8, 2026, in this workspace (macOS arm64).
 
-## Passed
+## Interface and documentation revision
+
+Rechecked on September 8, 2026 after the design and copy changes:
+
+- TypeScript check and Vite production build passed.
+- All six existing Playwright tests passed in desktop and mobile Chrome emulation. They cover class editing, preferences, search explanations, saved comparisons, persistence, filters, and horizontal overflow.
+- Inspected the generated desktop/mobile results and desktop comparison screenshots.
+- Updated existing assertions for the revised headings. No dependencies or backend behavior changed; the backend suite was not rerun for this revision.
+- The README now links to `docs/development.md` and `docs/engineering.md`; the detailed setup and ranking rules are retained there.
+
+## Original implementation checks
 
 - **33 backend tests** with Python 3.13.9 against PostgreSQL 17.11. Command from `backend/`:
   ```sh
