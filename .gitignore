@@ -1,0 +1,14 @@
+.env
+.venv/
+.postgres/
+.pgdata/
+.pglog
+__pycache__/
+.pytest_cache/
+*.pyc
+node_modules/
+dist/
+playwright-report/
+test-results/
+.DS_Store
+*.tsbuildinfo
