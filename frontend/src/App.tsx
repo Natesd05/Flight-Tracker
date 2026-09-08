@@ -280,9 +280,9 @@ export default function App() {
             Student Flight<span className="brand-sub">P L A N N E R</span>
           </span>
         </a>
-        <div className="workspace-label">YOUR WORKSPACE</div>
+        <div className="workspace-label">YOUR TRAVEL NOTEBOOK</div>
         <nav aria-label="Main navigation">
-          {navigation.map((n) => (
+          {navigation.map((n, index) => (
             <button
               key={n.id}
               className={page === n.id ? "nav-item active" : "nav-item"}
@@ -293,6 +293,9 @@ export default function App() {
               }}
             >
               <n.icon size={19} />
+              <span className="nav-number" aria-hidden="true">
+                0{index + 1}
+              </span>
               {n.label}
               {n.id === "saved" && saved.length > 0 && (
                 <span className="count">{saved.length}</span>
@@ -325,7 +328,7 @@ export default function App() {
       <div className="main-shell">
         <header className="topbar">
           <span>
-            <LayoutDashboard size={15} /> My workspace{" "}
+            <LayoutDashboard size={15} /> My notebook{" "}
             <span className="slash">/</span>{" "}
             <strong>{navigation.find((n) => n.id === page)?.label}</strong>
           </span>
@@ -338,19 +341,24 @@ export default function App() {
           <div className="page-heading">
             <div className="eyebrow">
               {page === "search"
-                ? "MAKE ROOM FOR A GETAWAY"
-                : "YOUR TRAVEL TOOLKIT"}
+                ? "FIELD NOTES / A LITTLE FURTHER FROM CAMPUS"
+                : "FIELD NOTES / THE LITTLE DETAILS"}
             </div>
             <div className="heading-row">
               <div>
                 <h1>
-                  {page === "search"
-                    ? "Good flights. Better timing."
-                    : page === "schedule"
-                      ? "Your week, accounted for."
-                      : page === "saved"
-                        ? "A shortlist worth saving."
-                        : "Travel on your terms."}
+                  {page === "search" ? (
+                    <>
+                      Good flights.{" "}
+                      <span className="ink-underline">Better timing.</span>
+                    </>
+                  ) : page === "schedule" ? (
+                    "Your week, accounted for."
+                  ) : page === "saved" ? (
+                    "A shortlist worth saving."
+                  ) : (
+                    "Travel on your terms."
+                  )}
                 </h1>
                 <p>
                   {page === "search"
@@ -362,9 +370,12 @@ export default function App() {
                         : "Set your starting point, budget, and what matters most."}
                 </p>
               </div>
-              <span className="term-pill">
-                <CalendarDays size={16} /> {new Date().getFullYear()} semester
-              </span>
+              <div className="trip-note" aria-hidden="true">
+                <svg viewBox="0 0 115 45" fill="none">
+                  <path d="M4 9C28 35 57 3 67 17S47 43 37 28 86 13 109 35M94 33l16 3-5-15" />
+                </svg>
+                leave room for a little adventure
+              </div>
             </div>
           </div>
           {error && (
@@ -804,9 +815,34 @@ export default function App() {
                         )
                       ) : (
                         <div className="empty search-empty">
-                          <span className="empty-icon">
-                            <Plane size={36} />
-                          </span>
+                          <div className="notebook-sketch" aria-hidden="true">
+                            <span className="sketch-label">
+                              somewhere between classes & clouds
+                            </span>
+                            <svg viewBox="0 0 320 150" fill="none">
+                              <circle
+                                className="sketch-sun"
+                                cx="249"
+                                cy="40"
+                                r="22"
+                              />
+                              <path
+                                className="sketch-trail"
+                                d="M28 114c37 18 78-8 69-29-9-23-43-4-22 14s80 10 120-39"
+                              />
+                              <path
+                                className="sketch-plane"
+                                d="m182 45 90-23-37 73-17-33-36-17Zm36 17 54-40M218 62l-4 23 12-10"
+                              />
+                              <path
+                                className="sketch-cloud"
+                                d="M25 54h57c6-14-9-23-18-17-4-23-34-17-31 2-10-3-18 5-8 15ZM240 125h48M250 133h23M130 27v12m-6-6h12"
+                              />
+                            </svg>
+                            <span className="sketch-caption">
+                              a change of scenery sounds nice.
+                            </span>
+                          </div>
                           <h3>A weekend away, without the guesswork.</h3>
                           <p>
                             Choose your dates and find flights. We’ll show what
