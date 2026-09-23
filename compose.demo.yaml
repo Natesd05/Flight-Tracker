@@ -1,0 +1,83 @@
+# Standalone deployment file: do not merge with the local compose.yaml.
+name: flightplanner-demo
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DEMO_DOMAIN: ${DEMO_DOMAIN:?Set DEMO_DOMAIN in .env.deploy}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    secrets:
+      - demo_auth
+    depends_on:
+      frontend:
+        condition: service_healthy
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      FLIGHT_PROVIDER: mock
+      CORS_ORIGINS: https://${DEMO_DOMAIN:?Set DEMO_DOMAIN in .env.deploy}
+    secrets:
+      - database_url
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging: *logging
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: planner
+      POSTGRES_DB: flightplanner
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    secrets:
+      - database_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planner -d flightplanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+secrets:
+  database_password:
+    file: ./deploy/secrets/database_password
+  database_url:
+    file: ./deploy/secrets/database_url
+  demo_auth:
+    file: ./deploy/secrets/demo_auth
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

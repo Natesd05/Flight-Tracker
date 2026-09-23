@@ -12,3 +12,6 @@ playwright-report/
 test-results/
 .DS_Store
 *.tsbuildinfo
+.env.deploy
+deploy/secrets/
+backups/

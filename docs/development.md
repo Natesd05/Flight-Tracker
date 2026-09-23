@@ -52,3 +52,9 @@ npm run test:e2e
 Integration tests apply actual Alembic migrations and roll each test back, including application commits. They refuse to use a database not ending in `_test`; without `TEST_DATABASE_URL` they are explicitly skipped. Browser tests run in temporary Chrome profiles at desktop and mobile viewport sizes; they restore preferences, remove their added classes/saved options, and retain search history. They test edit class → save preferences → search → ranking details → save → compare → reload, plus no-match explanations and horizontal overflow. Screenshots and failure traces go to `frontend/test-results/` (ignored by Git).
 
 See [VERIFICATION.md](../VERIFICATION.md) for the checks executed in this workspace and any limitations.
+
+The protected demo adds two access-control browser cases (one per viewport).
+They run when `E2E_AUTH_PASSWORD` is set; otherwise they explicitly skip. Set
+`E2E_AUTH_USERNAME` (default `demo`) and `E2E_BASE_URL` for a protected staging
+instance. `E2E_ALLOW_SELF_SIGNED=true` is only for local certificates. See the
+[deployment runbook](deployment.md) for setup and acceptance checks.

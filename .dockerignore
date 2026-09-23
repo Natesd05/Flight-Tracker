@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+.venv
+.postgres
+.pgdata
+.pglog
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/test-results
+**/playwright-report
+deploy/secrets
+backups

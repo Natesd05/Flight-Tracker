@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: flightplanner-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DEMO_PASSWORD
+        generateValue: true
+      - key: FLIGHT_PROVIDER
+        value: mock

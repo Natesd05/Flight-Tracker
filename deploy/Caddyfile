@@ -1,0 +1,33 @@
+{$DEMO_DOMAIN} {
+    # This required secret contains: demo <bcrypt hash>
+    # Keep basic_auth here so an empty secret cannot remove the gate.
+    basic_auth {
+        import /run/secrets/demo_auth
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+        X-Frame-Options DENY
+        Cache-Control "no-store"
+    }
+
+    # Basic auth is browser-cached. Reject cross-origin browser writes as well.
+    @crossOrigin {
+        method POST PUT PATCH DELETE
+        header Origin *
+        not header Origin https://{$DEMO_DOMAIN}
+    }
+    @crossSite {
+        method POST PUT PATCH DELETE
+        header Sec-Fetch-Site cross-site
+    }
+    route {
+        respond @crossOrigin "Cross-origin writes are not allowed" 403
+        respond @crossSite "Cross-site writes are not allowed" 403
+        reverse_proxy frontend:80 {
+            header_up -Authorization
+        }
+    }
+}

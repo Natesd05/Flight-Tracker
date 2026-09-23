@@ -29,6 +29,8 @@ class DuffelProvider:
     def search(self, query: SearchInput):
         if not settings.duffel_access_token:
             raise ProviderError('Duffel requires DUFFEL_ACCESS_TOKEN. Set a test token or select FLIGHT_PROVIDER=mock.')
+        if settings.duffel_require_test_mode and not settings.duffel_access_token.startswith('duffel_test_'):
+            raise ProviderError('This demo requires a Duffel test token.')
         try:
             with httpx.Client(base_url='https://api.duffel.com', timeout=25, transport=self.transport,
                               headers={'Authorization': f'Bearer {settings.duffel_access_token}',
@@ -46,6 +48,10 @@ class DuffelProvider:
                         response.raise_for_status()
                         payload = response.json()['data']
                         for offer in payload['offers']:
+                            if type(offer['live_mode']) is not bool:
+                                raise ProviderError('Duffel returned an invalid test/live mode flag.')
+                            if settings.duffel_require_test_mode and offer['live_mode']:
+                                raise ProviderError('This demo cannot display live Duffel offers.')
                             if len(offer['slices']) != 2:
                                 raise ProviderError('Duffel returned an unsupported itinerary. Only round trips are supported.')
                             if offer['total_currency'] != 'USD':
@@ -64,8 +70,14 @@ class DuffelProvider:
                                 legs.append(segments)
                             key = 'duffel-' + offer['id']
                             mode = 'live' if offer['live_mode'] else 'test'
-                            options[key] = Itinerary(id=key, provider=f'duffel-{mode}',
+                            itinerary = Itinerary(id=key, provider=f'duffel-{mode}',
                                 airfare=float(offer['total_amount']), outbound=legs[0], inbound=legs[1])
+                            if (itinerary.outbound[0].origin != query.origin or
+                                    itinerary.outbound[-1].destination != query.destination or
+                                    itinerary.outbound[0].departure.date() != depart or
+                                    itinerary.inbound[0].departure.date() != back):
+                                raise ProviderError('Duffel returned an itinerary that does not match the requested route or dates.')
+                            options[key] = itinerary
                 return list(options.values())
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
@@ -73,5 +85,5 @@ class DuffelProvider:
             raise ProviderError(f'Duffel returned HTTP {status}. {advice}') from exc
         except httpx.RequestError as exc:
             raise ProviderError('Unable to reach Duffel. Check your network and try again.') from exc
-        except (ValueError, KeyError, TypeError) as exc:
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise ProviderError('Duffel returned an invalid offer. Try another route or contact the app maintainer.') from exc

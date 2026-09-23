@@ -9,6 +9,10 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     channel: "chrome",
+    ...(process.env.E2E_AUTH_PASSWORD
+      ? { httpCredentials: { username: process.env.E2E_AUTH_USERNAME || "demo", password: process.env.E2E_AUTH_PASSWORD } }
+      : {}),
+    ignoreHTTPSErrors: process.env.E2E_ALLOW_SELF_SIGNED === "true",
   },
   projects: [
     {

@@ -98,8 +98,22 @@ Extras remain user estimates. Provider access, quotas, charges, coverage, and cu
 | `CORS_ORIGINS` | Comma-separated local frontend origins |
 | `FLIGHT_PROVIDER` | `mock` (default) or `duffel` |
 | `DUFFEL_ACCESS_TOKEN` | Required only for Duffel; use a test token for development |
+| `DUFFEL_REQUIRE_TEST_MODE` | Default false; optional guard for the unused Duffel adapter |
 | `TEST_DATABASE_URL` | Dedicated PostgreSQL database whose name ends in `_test` |
 | `E2E_BASE_URL` | Running frontend URL, default `http://127.0.0.1:5173` |
 
 Backend local commands load `../.env` when run from `backend/`; environment variables take precedence. Docker injects values directly. No real secrets are committed.
 
+The standalone hosted configuration mounts `database_url` under `/run/secrets`,
+which Pydantic loads when present. The hosted provider is fixed to `mock` and
+no Duffel secret is required or mounted.
+Environment and dotenv values take precedence over these files. The hosted
+image contains no `.env`; keep secret-valued environment entries out of
+`compose.demo.yaml`. See [deployment](deployment.md) for HTTPS, shared access
+protection, backup and restore procedures.
+
+Duffel responses must contain a boolean `live_mode`; malformed values are
+rejected rather than labeled by truthiness. Each mapped itinerary must match
+the requested airports and local departure dates. The search-only
+`python -m app.verify_duffel` command requires a test token and prints a redacted
+validation summary without saving provider payloads.

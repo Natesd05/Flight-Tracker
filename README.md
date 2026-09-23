@@ -67,5 +67,13 @@ The frontend is React and TypeScript with plain CSS. FastAPI validates requests;
 - [Development setup and test commands](docs/development.md)
 - [Architecture, ranking rules, API, and configuration](docs/engineering.md)
 - [Recorded verification and limitations](VERIFICATION.md)
+- [Protected hosted-demo setup and deployment runbook](docs/deployment.md)
 
 The backend tests cover ranking, timezones, providers, and database behavior. The browser suite covers the planning flow, persistence, comparison limits, filters, and desktop/mobile layouts.
+
+The selected **$0 hosted demo** uses Render Free and Neon Free, with sample
+flights and no Duffel account or token. Follow [the free-demo setup](docs/free-demo.md).
+The [portable Docker server runbook](docs/deployment.md) remains an alternative.
+Public hosting has not yet been verified.
+
+For the current project state and deployment handoff, see [docs/handoff.md](docs/handoff.md).
