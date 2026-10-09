@@ -1,3 +1,15 @@
+# October 8, 2026 update
+
+Personal accounts now replace the shared profile in the app. Sign up or log in to access your own schedule, preferences, searches, and saved flights. Existing legacy demo data is preserved in profile 1 and is not assigned to a new user. New accounts receive four starter classes, Monday–Thursday. Sunday appears first; one-time changes expand on click; optional recurring classes are excluded from conflict scoring and hard conflict filters.
+
+Browser location requests are opt-in. Distances are straight-line, calculated locally using an OurAirports coordinate snapshot; recommendations are limited to the 49 supported major airports. The selected home airport is saved with preferences, not the coordinates. Driving distances and transit estimates are not inferred.
+
+Run `./scripts/dev-local.sh` to apply the new `0002` migration and start the app. Hosted deployments still have the existing shared Basic Auth gate in addition to personal app accounts. No public deployment was performed. Password reset and email verification are not implemented.
+
+The September 23 handoff below is historical and describes the previous shared-profile release.
+
+---
+
 # FlightPlanner handoff
 
 Updated September 23, 2026.

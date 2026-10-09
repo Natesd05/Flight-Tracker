@@ -25,7 +25,7 @@ def class_conflicts(away_start, away_end, schedule: Schedule, zone: str):
     intervals = []
     for day in days_between(start_day, end_day):
         for c in schedule.classes:
-            if day.weekday() == c.weekday and (c.id, day) not in cancelled:
+            if not c.optional and day.weekday() == c.weekday and (c.id, day) not in cancelled:
                 intervals.append((c.title, day, c.start_time, c.end_time))
     intervals.extend((e.title, e.date, e.start_time, e.end_time) for e in schedule.exceptions
                      if e.kind == 'add' and start_day <= e.date <= end_day)

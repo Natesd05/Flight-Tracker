@@ -25,7 +25,11 @@ docker compose up --build
 
 Open [localhost:5173](http://localhost:5173). The backend applies migrations and seeds a starter schedule automatically. The [API docs](http://localhost:8000/docs) are available locally too.
 
-This is a local app with **one shared profile and no sign-in**. Everyone connected to the same instance sees the same schedule, preferences, and saved flights.
+Create an account with your email and a password of at least 12 characters. Your schedule, preferences, searches, and saved flights are stored separately in PostgreSQL and restored when you log in again. Sessions last 30 days; logging out revokes the session.
+
+New accounts start with one class Monday through Thursday, with Sunday displayed first. Mark a class optional to exclude it from flight conflicts. Click **One-time changes** to add or cancel a meeting.
+
+In Preferences, **Use my location** shows straight-line distance to your home airport and recommends the nearest supported major airport. Location requires browser permission; coordinates stay in the tab. Save preferences to retain a chosen home airport.
 
 To stop it:
 
@@ -56,7 +60,7 @@ The [engineering notes](docs/engineering.md#recommendation-rules) cover the form
 
 ## A few boundaries
 
-There’s no booking or payment flow. Baggage and ground costs are your estimates. The airport catalog is limited to 14 airports, and transit time is based on your home airport setting; update it if you search from somewhere else.
+There’s no booking or payment flow. Baggage and ground costs are your estimates. The airport catalog is limited to 49 major airports, and transit time is based on your home airport setting; update it if you search from somewhere else.
 
 An optional Duffel adapter feeds offers into the same ranking engine. Its HTTP contract has tests, but it hasn’t been verified with a credential-based request. Setup and provider limits are in the [Duffel notes](docs/engineering.md#optional-duffel-provider).
 
@@ -69,7 +73,7 @@ The frontend is React and TypeScript with plain CSS. FastAPI validates requests;
 - [Recorded verification and limitations](VERIFICATION.md)
 - [Protected hosted-demo setup and deployment runbook](docs/deployment.md)
 
-The backend tests cover ranking, timezones, providers, and database behavior. The browser suite covers the planning flow, persistence, comparison limits, filters, and desktop/mobile layouts.
+The backend tests cover ranking, timezones, providers, database behavior, account isolation, session expiry, and optional classes. The browser suite covers the planning flow, persistence, comparison limits, filters, and desktop/mobile layouts.
 
 The selected **$0 hosted demo** uses Render Free and Neon Free, with sample
 flights and no Duffel account or token. Follow [the free-demo setup](docs/free-demo.md).

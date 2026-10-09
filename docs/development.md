@@ -31,6 +31,14 @@ npm run dev -- --host 127.0.0.1
 
 Vite proxies `/api` to `127.0.0.1:8000`. Docker serves the compiled frontend with nginx and proxies the same path to FastAPI. The application needs no runtime frontend secrets. The UI uses system fonts and has no external font requests.
 
+## Accounts and location
+
+Startup applies migration `0002`, adding accounts and hashed, expiring session tokens. Passwords use salted scrypt (`N=131072, r=8, p=1`); authentication uses HttpOnly SameSite cookies, Secure on HTTPS, and rejects cross-origin writes. Every personal-data endpoint scopes records to the authenticated profile. Legacy profile 1 remains untouched. New accounts get Monday–Thursday defaults.
+
+The location component uses browser geolocation and calculates great-circle distances in miles using coordinates from [OurAirports via airport-codes](https://github.com/datasets/airport-codes), retrieved October 8, 2026. It does not send or persist coordinates. Manual airport selection works without permission. HTTPS (or localhost) is required by browsers. The 49-airport catalog bounds recommendations.
+
+Password reset and email verification are outside this release. The existing hosted shared access gate remains in place. Before opening registration to the public, add deployment-wide authentication rate limiting and an account recovery flow.
+
 ## Verification
 
 ```sh
@@ -58,3 +66,5 @@ They run when `E2E_AUTH_PASSWORD` is set; otherwise they explicitly skip. Set
 `E2E_AUTH_USERNAME` (default `demo`) and `E2E_BASE_URL` for a protected staging
 instance. `E2E_ALLOW_SELF_SIGNED=true` is only for local certificates. See the
 [deployment runbook](deployment.md) for setup and acceptance checks.
+
+Browser tests create distinct test accounts. Run them against a dedicated test database; accounts/search snapshots remain there. To use an isolated backend, set `API_PROXY_TARGET=http://127.0.0.1:18000` when launching Vite.

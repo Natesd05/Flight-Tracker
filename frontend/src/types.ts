@@ -21,6 +21,7 @@ export type Preferences = {
   weights: Weights;
 };
 export type ClassItem = {
+  optional: boolean;
   id: number;
   title: string;
   weekday: number;

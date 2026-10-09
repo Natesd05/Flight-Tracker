@@ -1,5 +1,16 @@
 # Verification record
 
+## October 8, 2026 — personal accounts, schedule, and location
+
+- 62 backend tests pass against the isolated `flightplanner_test` PostgreSQL database. Includes migrations/ORM agreement, cross-account access denial for classes, exceptions, searches and saved flights, signup/login/logout, invalid credentials, duplicate email normalization, expired/revoked sessions, cross-origin rejection, persistence, default Monday–Thursday schedule, and optional-class conflict exclusion.
+- TypeScript and Vite production build pass; `git diff --check` passes.
+- 10 Playwright tests pass on desktop and mobile Chrome emulation using a separate API on port 18000, frontend on 15173, and `flightplanner_demo_e2e_test`. Two hosted Basic Auth proxy cases were skipped because this run did not use the hosted proxy.
+- Browser checks cover signup, logout and subsequent login, reload persistence, Sunday-first schedule, four starter classes, click-to-expand exceptions, optional class editing, mocked location at ORD, airport distance/recommendation, choosing and saving the recommendation, denied location fallback, and existing search/compare flows. Location tests use simulated coordinates; no user's location was requested.
+- Desktop/mobile schedule screenshots inspected. A data coordinate-order issue and Vite proxy Host mismatch found during testing were corrected before passing runs.
+- Migration `0002` applied to the local application database without deleting the legacy demo profile. Local health reports PostgreSQL/mock; unauthenticated account lookup returns 401. Existing app servers on ports 5173 and 8000 remain running.
+- No public deployment or live flight-provider verification. Password reset, email verification, and deployment-wide authentication rate limiting remain outside this release. The hosted shared password gate is retained.
+
+
 ## September 23, 2026 — Render Free / Neon Free adaptation
 
 Prepared `render.yaml` and `Dockerfile.render` for one free web service serving

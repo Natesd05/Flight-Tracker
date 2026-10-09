@@ -60,7 +60,7 @@ export function AirportSelect({
 }) {
   return (
     <Field label={label}>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
+      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
         {airports.map((a) => (
           <option value={a.code} key={a.code}>
             {a.code} · {a.name}

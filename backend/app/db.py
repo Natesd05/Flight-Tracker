@@ -61,3 +61,18 @@ Index('ix_search_profile_created', SearchRow.profile_id, SearchRow.created_at)
 def get_db():
     with SessionLocal() as session:
         yield session
+
+
+class Account(Base):
+    __tablename__ = 'accounts'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    profile_id: Mapped[int] = mapped_column(ForeignKey('profiles.id', ondelete='CASCADE'), unique=True)
+
+
+class LoginSession(Base):
+    __tablename__ = 'login_sessions'
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id', ondelete='CASCADE'), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

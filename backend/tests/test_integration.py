@@ -45,6 +45,7 @@ def client(test_engine):
     previous=settings.flight_provider
     settings.flight_provider='mock'
     with TestClient(app) as c:
+        assert c.post("/api/auth/signup", json={"email": "test@example.com", "password": "a-test-password-123"}).status_code == 201
         yield c
     settings.flight_provider=previous
     app.dependency_overrides.clear()
@@ -133,3 +134,77 @@ def test_migration_matches_orm(test_engine):
     from app.db import Base
     with test_engine.connect() as connection:
         assert compare_metadata(MigrationContext.configure(connection),Base.metadata)==[]
+
+
+def test_accounts_isolate_records_and_survive_login(client):
+    from app.db import Account, LoginSession
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import select
+    prefs = client.get('/api/preferences').json()
+    prefs['budget'] = 777
+    assert client.put('/api/preferences', json=prefs).status_code == 200
+    classes = client.get('/api/schedule').json()['classes']
+    assert [c['weekday'] for c in classes] == [0, 1, 2, 3]
+    original = classes[0]
+    optional = {k: v for k, v in original.items() if k != 'id'}
+    optional['optional'] = True
+    assert client.put(f"/api/classes/{original['id']}", json=optional).json()['optional'] is True
+    result = client.post('/api/searches', json=search_body()).json()
+    saved = client.post('/api/saved', json={'search_id': result['id'], 'itinerary_id': result['results'][0]['itinerary']['id']}).json()
+    exception = client.post('/api/exceptions', json={'kind': 'add', 'date': '2026-09-12', 'title': 'Exam', 'start_time': '10:00', 'end_time': '11:00'}).json()
+    cookie = client.cookies.get('flightplanner_session')
+    assert client.post('/api/auth/logout').status_code == 204
+    assert client.get('/api/preferences').status_code == 401
+    client.cookies.set('flightplanner_session', cookie)
+    assert client.get('/api/preferences').status_code == 401
+    client.cookies.clear()
+    response = client.post('/api/auth/signup', json={'email': 'other@example.com', 'password': 'another-password-123'})
+    assert response.status_code == 201
+    assert 'HttpOnly' in response.headers['set-cookie']
+    assert 'SameSite=lax' in response.headers['set-cookie']
+    assert client.get('/api/preferences').json()['budget'] == 500
+    assert client.get('/api/saved').json() == []
+    assert client.get('/api/searches').json() == []
+    assert client.put(f"/api/classes/{original['id']}", json=optional).status_code == 404
+    assert client.delete(f"/api/classes/{original['id']}").status_code == 404
+    assert client.get(f"/api/searches/{result['id']}").status_code == 404
+    assert client.post('/api/saved', json={'search_id': result['id'], 'itinerary_id': result['results'][0]['itinerary']['id']}).status_code == 404
+    assert client.delete(f"/api/saved/{saved['id']}").status_code == 404
+    assert client.delete(f"/api/exceptions/{exception['id']}").status_code == 404
+    assert client.post('/api/auth/login', json={'email': 'test@example.com', 'password': 'incorrect-password'}).status_code == 401
+    assert client.post('/api/auth/login', json={'email': 'TEST@example.com', 'password': 'a-test-password-123'}).status_code == 200
+    assert client.get('/api/preferences').json()['budget'] == 777
+    assert client.get('/api/schedule').json()['classes'][0]['optional'] is True
+    assert len(client.get('/api/saved').json()) == 1
+    assert client.post('/api/auth/signup', json={'email': 'TEST@example.com', 'password': 'a-test-password-123'}).status_code == 409
+    db = app.dependency_overrides[get_db]()
+    assert all(a.password_hash != 'a-test-password-123' for a in db.scalars(select(Account)))
+    for row in db.scalars(select(LoginSession)):
+        assert row.token_hash != client.cookies.get('flightplanner_session')
+        row.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+    assert client.get('/api/auth/me').status_code == 401
+
+
+def test_auth_cross_origin_and_validation(client):
+    for path in ('signup', 'login', 'logout'):
+        assert client.post('/api/auth/' + path, headers={'Origin': 'https://evil.example'}, json={'email': 'test@example.com', 'password': 'a-test-password-123'}).status_code == 403
+    prefs = client.get('/api/preferences').json()
+    assert client.put('/api/preferences', headers={'Origin': 'https://evil.example'}, json=prefs).status_code == 403
+    assert client.post('/api/auth/signup', json={'email': 'bad', 'password': 'short'}).status_code == 422
+
+
+def test_optional_class_does_not_affect_ranking(client):
+    from app.engine import class_conflicts
+    from app.schemas import Schedule
+    from datetime import datetime, timezone
+    data = {'title': 'Friday', 'weekday': 4, 'start_time': '09:00', 'end_time': '10:00', 'optional': False}
+    row = client.post('/api/classes', json=data).json()
+    start = datetime(2026, 9, 11, tzinfo=timezone.utc)
+    end = datetime(2026, 9, 12, tzinfo=timezone.utc)
+    schedule = Schedule.model_validate(client.get('/api/schedule').json())
+    assert class_conflicts(start, end, schedule, 'America/Chicago')[1] == 60
+    data['optional'] = True
+    client.put(f"/api/classes/{row['id']}", json=data)
+    schedule = Schedule.model_validate(client.get('/api/schedule').json())
+    assert class_conflicts(start, end, schedule, 'America/Chicago')[1] == 0

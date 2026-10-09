@@ -1,0 +1,58 @@
+import { test, expect } from '@playwright/test';
+
+test('account, Sunday-first schedule, optional class, location and returning login', async ({page, context}, info) => {
+  const email = `account-${info.project.name}-${Date.now()}@example.com`;
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({latitude: 41.9786, longitude: -87.9048});
+  await page.goto('/');
+  await page.getByRole('button', {name: 'New here? Sign up'}).click();
+  await page.getByLabel('Email', {exact: true}).fill(email);
+  await page.getByLabel('Password', {exact: true}).fill('browser-test-password-123');
+  await page.getByRole('button', {name: 'Sign up', exact: true}).click();
+  await expect(page.getByRole('heading', {name: 'Where to after class?'})).toBeVisible();
+  await page.getByRole('button', {name: 'My schedule', exact: true}).click();
+  await expect(page.locator('.day-column h3').first()).toContainText('Sun');
+  await expect(page.locator('.class-block')).toHaveCount(4);
+  await expect(page.locator('.day-column').nth(5)).toContainText('No classes');
+  await expect(page.getByRole('button', {name: 'Add exception', exact: true})).not.toBeVisible();
+  await page.locator('.exception-window summary').click();
+  await expect(page.getByRole('button', {name: 'Add exception', exact: true})).toBeVisible();
+  await page.locator('.class-block').first().click();
+  await page.getByLabel('Optional class').check();
+  await page.getByRole('button', {name: 'Update class', exact: true}).click();
+  await expect(page.locator('.class-block').first()).toContainText('Optional');
+  await page.screenshot({path: `test-results/${info.project.name}-new-schedule.png`, fullPage: true});
+  await page.getByRole('button', {name: 'Preferences', exact: true}).click();
+  await page.getByLabel('Home airport', {exact: true}).selectOption('LAX');
+  await page.getByRole('button', {name: 'Use my location', exact: true}).click();
+  await expect(page.getByText('Closest supported major airport:')).toContainText('ORD');
+  await expect(page.getByText(/LAX: .* miles from your current location/)).toBeVisible();
+  await page.getByRole('button', {name: 'Use ORD as home airport'}).click();
+  await page.getByLabel('Total budget (USD)', {exact: true}).fill('743');
+  await page.getByRole('button', {name: 'Save preferences', exact: true}).click();
+  await expect(page.getByRole('status')).toContainText('Preferences saved');
+  await page.getByRole('button', {name: 'Log out', exact: true}).click();
+  await page.getByLabel('Password', {exact: true}).fill('browser-test-password-123');
+  await page.getByRole('button', {name: 'Log in', exact: true}).click();
+  await page.getByRole('button', {name: 'Preferences', exact: true}).click();
+  await expect(page.getByLabel('Total budget (USD)', {exact: true})).toHaveValue('743');
+  await expect(page.getByLabel('Home airport', {exact: true})).toHaveValue('ORD');
+  await page.reload();
+  await expect(page.getByRole('heading', {name: 'Where to after class?'})).toBeVisible();
+  await page.getByRole('button', {name: 'My schedule', exact: true}).click();
+  await expect(page.locator('.class-block').first()).toContainText('Optional');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test('denied location leaves manual airport selection available', async ({page, request}) => {
+  const response = await request.post('/api/auth/signup', {data: {email: `denied-${Date.now()}@example.com`, password: 'browser-test-password-123'}});
+  expect(response.status()).toBe(201);
+  await page.context().addCookies((await request.storageState()).cookies);
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'geolocation', {value: {getCurrentPosition: (_success: unknown, failure: (e: {code: number}) => void) => failure({code: 1})}}); });
+  await page.goto('/');
+  await page.getByRole('button', {name: 'Preferences', exact: true}).click();
+  await page.getByRole('button', {name: 'Use my location', exact: true}).click();
+  await expect(page.getByText(/Location permission denied/)).toBeVisible();
+  await page.getByLabel('Home airport', {exact: true}).selectOption('BOS');
+  await expect(page.getByLabel('Home airport', {exact: true})).toHaveValue('BOS');
+});

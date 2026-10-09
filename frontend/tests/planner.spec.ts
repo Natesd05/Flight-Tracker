@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page, request }, info) => {
+  const response = await request.post('/api/auth/signup', {data: {email: `planner-${info.project.name}-${Date.now()}@example.com`, password: 'browser-test-password-123'}});
+  expect(response.status()).toBe(201);
+  await page.context().addCookies((await request.storageState()).cookies);
+});
+
 test("student planning flow persists classes, preferences, searches and comparisons", async ({
   page,
   request,

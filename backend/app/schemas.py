@@ -63,6 +63,7 @@ class Preferences(Schema):
 
 
 class ClassInput(Schema):
+    optional: bool = False
     title: str = Field(min_length=1, max_length=100)
     weekday: int = Field(ge=0, le=6)
     start_time: time

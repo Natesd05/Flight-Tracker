@@ -1,3 +1,5 @@
+import { AirportLocation } from "./AirportLocation";
+import { AccountGate } from "./AccountGate";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -85,6 +87,7 @@ const initialQuery: Query = {
   arrival_end: "23:00",
 };
 const emptyClass = {
+  optional: false,
   title: "",
   weekday: 0,
   start_time: "09:00",
@@ -99,6 +102,10 @@ const navigation = [
 type Page = (typeof navigation)[number]["id"];
 
 export default function App() {
+  return <AccountGate>{(email, logout) => <Planner key={email} email={email} logout={logout} />}</AccountGate>;
+}
+
+function Planner({email, logout}: {email: string; logout: () => Promise<void>}) {
   const [page, setPage] = useState<Page>("search");
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [draftPrefs, setDraftPrefs] = useState<Preferences | null>(null);
@@ -233,6 +240,7 @@ export default function App() {
   function edit(c: ClassItem) {
     setEditClass(c.id);
     setClassDraft({
+      optional: c.optional,
       title: c.title,
       weekday: c.weekday,
       start_time: c.start_time.slice(0, 5),
@@ -279,6 +287,7 @@ export default function App() {
             FlightPlanner<span className="brand-sub">BETWEEN CLASSES</span>
           </span>
         </a>
+        <div className="account-controls"><small>{email}</small><button className="button secondary" onClick={() => void action(logout, "")}>Log out</button></div>
         <div className="workspace-label">TRIP PLANNING</div>
         <nav aria-label="Main navigation">
           {navigation.map((n, index) => (
@@ -322,7 +331,7 @@ export default function App() {
           </span>
           <div>
             <strong>{prefs?.name || "Demo student"}</strong>
-            <small>Shared local profile</small>
+            <small>Your personal account</small>
           </div>
         </div>
       </aside>
@@ -902,10 +911,10 @@ export default function App() {
                       </span>
                     </div>
                     <div className="week-grid">
-                      {days.map((day, i) => (
-                        <div className="day-column" key={day}>
+                      {[6, 0, 1, 2, 3, 4, 5].map((i) => (
+                        <div className="day-column" key={i}>
                           <h3>
-                            {day.slice(0, 3)}
+                            {days[i].slice(0, 3)}
                             <small>
                               {
                                 schedule.classes.filter((c) => c.weekday === i)
@@ -931,7 +940,7 @@ export default function App() {
                                   {c.end_time.slice(0, 5)}
                                   {c.end_time < c.start_time ? " +1 day" : ""}
                                 </span>
-                                <small>Edit class</small>
+                                <small>{c.optional ? "Optional · Edit class" : "Edit class"}</small>
                               </button>
                             ))}
                           {!schedule.classes.some((c) => c.weekday === i) && (
@@ -964,6 +973,7 @@ export default function App() {
                           }
                         />
                       </Field>
+                      <label className="optional-toggle"><input type="checkbox" checked={classDraft.optional} onChange={(e) => setClassDraft({...classDraft, optional: e.target.checked})} /> Optional class (excluded from flight conflicts)</label>
                       <Field label="Day of week">
                         <select
                           value={classDraft.weekday}
@@ -974,9 +984,9 @@ export default function App() {
                             })
                           }
                         >
-                          {days.map((d, i) => (
-                            <option key={d} value={i}>
-                              {d}
+                          {[6, 0, 1, 2, 3, 4, 5].map((i) => (
+                            <option key={i} value={i}>
+                              {days[i]}
                             </option>
                           ))}
                         </select>
@@ -1050,8 +1060,9 @@ export default function App() {
                         )}
                       </div>
                     </form>
+                    <details className="panel exception-window">
+                    <summary>One-time changes <span>Open to cancel or add a meeting</span></summary>
                     <form
-                      className="panel"
                       onSubmit={(e) => {
                         e.preventDefault();
                         void action(async () => {
@@ -1076,7 +1087,6 @@ export default function App() {
                         }, "Schedule exception added.");
                       }}
                     >
-                      <h2>One-time changes</h2>
                       <Field label="Change type">
                         <select
                           value={exception.kind}
@@ -1198,6 +1208,7 @@ export default function App() {
                         ))}
                       </div>
                     </form>
+                    </details>
                   </div>
                 </div>
               )}
@@ -1273,6 +1284,7 @@ export default function App() {
                         }
                         airports={airports}
                       />
+                      <AirportLocation airports={airports} home={draftPrefs.home_airport} onSelect={(code) => setDraftPrefs({...draftPrefs, home_airport: code})} />
                       <div className="field-grid">
                         <Field label="Home airport transit (min)">
                           <input
