@@ -102,10 +102,20 @@ const navigation = [
 type Page = (typeof navigation)[number]["id"];
 
 export default function App() {
-  return <AccountGate>{(email, logout) => <Planner key={email} email={email} logout={logout} />}</AccountGate>;
+  return (
+    <AccountGate>
+      {(email, logout) => <Planner key={email} email={email} logout={logout} />}
+    </AccountGate>
+  );
 }
 
-function Planner({email, logout}: {email: string; logout: () => Promise<void>}) {
+function Planner({
+  email,
+  logout,
+}: {
+  email: string;
+  logout: () => Promise<void>;
+}) {
   const [page, setPage] = useState<Page>("search");
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [draftPrefs, setDraftPrefs] = useState<Preferences | null>(null);
@@ -115,6 +125,7 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
   });
   const [airports, setAirports] = useState<Airport[]>([]);
   const [saved, setSaved] = useState<Saved[]>([]);
+  const [flexibleDates, setFlexibleDates] = useState(false);
   const [query, setQuery] = useState<Query>(initialQuery);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [history, setHistory] = useState<SearchResult[]>([]);
@@ -201,7 +212,19 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
     setError("");
     setNotice("");
     try {
-      const r = await api<SearchResult>("/searches", "POST", query);
+      const r = await api<SearchResult>(
+        "/searches",
+        "POST",
+        flexibleDates
+          ? query
+          : {
+              ...query,
+              departure_to: query.departure_from,
+              return_to: query.return_from,
+              min_trip_days: 0,
+              max_trip_days: 30,
+            },
+      );
       setResult(r);
       setHistory((h) => [r, ...h].slice(0, 10));
       setStale(false);
@@ -287,10 +310,18 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
             FlightPlanner<span className="brand-sub">BETWEEN CLASSES</span>
           </span>
         </a>
-        <div className="account-controls"><small>{email}</small><button className="button secondary" onClick={() => void action(logout, "")}>Log out</button></div>
+        <div className="account-controls">
+          <small>{email}</small>
+          <button
+            className="button secondary"
+            onClick={() => void action(logout, "")}
+          >
+            Log out
+          </button>
+        </div>
         <div className="workspace-label">TRIP PLANNING</div>
         <nav aria-label="Main navigation">
-          {navigation.map((n, index) => (
+          {navigation.map((n) => (
             <button
               key={n.id}
               className={page === n.id ? "nav-item active" : "nav-item"}
@@ -301,9 +332,6 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
               }}
             >
               <n.icon size={19} />
-              <span className="nav-number" aria-hidden="true">
-                0{index + 1}
-              </span>
               {n.label}
               {n.id === "saved" && saved.length > 0 && (
                 <span className="count">{saved.length}</span>
@@ -311,16 +339,6 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
             </button>
           ))}
         </nav>
-        <div className="sidebar-note">
-          <span className="note-label">Before you search</span>
-          <p>
-            A cheap Friday flight can cost you an afternoon of classes. Check
-            the time away, too.
-          </p>
-          <button className="text-button" onClick={() => setPage("schedule")}>
-            Review your week <ArrowRight size={14} />
-          </button>
-        </div>
         <div className="profile">
           <span className="avatar">
             {prefs?.name
@@ -348,15 +366,6 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
         </header>
         <main>
           <div className="page-heading">
-            <div className="eyebrow">
-              {page === "search"
-                ? "01 / PLAN A TRIP"
-                : page === "schedule"
-                  ? "02 / THE WEEK AHEAD"
-                  : page === "saved"
-                    ? "03 / THE SHORTLIST"
-                    : "04 / YOUR DEFAULTS"}
-            </div>
             <div className="heading-row">
               <div>
                 <h1>
@@ -366,7 +375,7 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                       ? "My schedule"
                       : page === "saved"
                         ? "Saved flights"
-                        : "The way you travel"}
+                        : "Preferences"}
                 </h1>
                 <p>
                   {page === "search"
@@ -414,60 +423,6 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
             <>
               {page === "search" && (
                 <>
-                  <div className="stats">
-                    <div>
-                      <span className="stat-icon">
-                        <CalendarDays size={20} />
-                      </span>
-                      <span>
-                        <small>Your weekly schedule</small>
-                        <strong>
-                          {schedule.classes.length} classes <em>each week</em>
-                        </strong>
-                      </span>
-                      <button
-                        aria-label="Edit schedule"
-                        onClick={() => setPage("schedule")}
-                      >
-                        <ArrowUpRight size={18} />
-                      </button>
-                    </div>
-                    <div>
-                      <span className="stat-icon">
-                        <span>$</span>
-                      </span>
-                      <span>
-                        <small>Trip budget</small>
-                        <strong>
-                          {money(prefs.budget)} <em>including extras</em>
-                        </strong>
-                      </span>
-                      <button
-                        aria-label="Edit budget"
-                        onClick={() => setPage("preferences")}
-                      >
-                        <ArrowUpRight size={18} />
-                      </button>
-                    </div>
-                    <div>
-                      <span className="stat-icon">
-                        <Plane size={20} />
-                      </span>
-                      <span>
-                        <small>Your home airport</small>
-                        <strong>
-                          {prefs.home_airport}{" "}
-                          <em>{prefs.transit_minutes} min from home</em>
-                        </strong>
-                      </span>
-                      <button
-                        aria-label="Edit home airport"
-                        onClick={() => setPage("preferences")}
-                      >
-                        <ArrowUpRight size={18} />
-                      </button>
-                    </div>
-                  </div>
                   <div className="planner-grid">
                     <aside className="search-column">
                       <form
@@ -493,8 +448,44 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                           onChange={(v) => updateQuery("destination", v)}
                           airports={airports}
                         />
+                        <div className="search-context">
+                          <button
+                            type="button"
+                            onClick={() => setPage("preferences")}
+                          >
+                            {money(prefs.budget)} budget
+                          </button>
+                          <span aria-hidden="true">·</span>
+                          <button
+                            type="button"
+                            onClick={() => setPage("schedule")}
+                          >
+                            {schedule.classes.filter((c) => !c.optional).length}{" "}
+                            required classes / week
+                          </button>
+                        </div>
+                        <label className="flexible-toggle">
+                          <input
+                            type="checkbox"
+                            checked={flexibleDates}
+                            onChange={(e) => {
+                              setFlexibleDates(e.target.checked);
+                              setQuery((q) => ({
+                                ...q,
+                                departure_to: q.departure_from,
+                                return_to: q.return_from,
+                              }));
+                              setStale(true);
+                            }}
+                          />
+                          Flexible dates
+                        </label>
                         <div className="field-grid">
-                          <Field label="Depart from">
+                          <Field
+                            label={
+                              flexibleDates ? "Depart from" : "Departure date"
+                            }
+                          >
                             <input
                               type="date"
                               required
@@ -504,6 +495,9 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                                 setQuery((q) => ({
                                   ...q,
                                   departure_from: v,
+                                  return_from:
+                                    v > q.return_from ? v : q.return_from,
+                                  return_to: v > q.return_to ? v : q.return_to,
                                   departure_to:
                                     v > q.departure_to ? v : q.departure_to,
                                 }));
@@ -511,18 +505,24 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                               }}
                             />
                           </Field>
-                          <Field label="Depart by">
-                            <input
-                              type="date"
-                              required
-                              min={query.departure_from}
-                              value={query.departure_to}
-                              onChange={(e) =>
-                                updateQuery("departure_to", e.target.value)
-                              }
-                            />
-                          </Field>
-                          <Field label="Return from">
+                          {flexibleDates && (
+                            <Field label="Depart by">
+                              <input
+                                type="date"
+                                required
+                                min={query.departure_from}
+                                value={query.departure_to}
+                                onChange={(e) =>
+                                  updateQuery("departure_to", e.target.value)
+                                }
+                              />
+                            </Field>
+                          )}
+                          <Field
+                            label={
+                              flexibleDates ? "Return from" : "Return date"
+                            }
+                          >
                             <input
                               type="date"
                               required
@@ -539,54 +539,66 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                               }}
                             />
                           </Field>
-                          <Field label="Return by">
-                            <input
-                              type="date"
-                              required
-                              min={query.return_from}
-                              value={query.return_to}
-                              onChange={(e) =>
-                                updateQuery("return_to", e.target.value)
-                              }
-                            />
-                          </Field>
+                          {flexibleDates && (
+                            <Field label="Return by">
+                              <input
+                                type="date"
+                                required
+                                min={query.return_from}
+                                value={query.return_to}
+                                onChange={(e) =>
+                                  updateQuery("return_to", e.target.value)
+                                }
+                              />
+                            </Field>
+                          )}
                         </div>
-                        <small className="helper">
-                          Use the same date twice for a fixed trip, or a range
-                          of up to 4 days.
-                        </small>
-                        <div className="field-grid">
-                          <Field label="Min days away">
-                            <input
-                              type="number"
-                              min="0"
-                              max="30"
-                              step="0.5"
-                              value={query.min_trip_days}
-                              onChange={(e) =>
-                                updateQuery("min_trip_days", +e.target.value)
-                              }
-                              required
-                            />
-                          </Field>
-                          <Field label="Max days away">
-                            <input
-                              type="number"
-                              min="0.5"
-                              max="30"
-                              step="0.5"
-                              value={query.max_trip_days}
-                              onChange={(e) =>
-                                updateQuery("max_trip_days", +e.target.value)
-                              }
-                              required
-                            />
-                          </Field>
-                        </div>
-                        <p className="helper">
-                          Days away includes airport travel and the stay. A
-                          48-hour trip counts as 2 days.
-                        </p>
+                        {flexibleDates && (
+                          <>
+                            <small className="helper">
+                              Use the same date twice for a fixed trip, or a
+                              range of up to 4 days.
+                            </small>
+                            <div className="field-grid">
+                              <Field label="Min days away">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="30"
+                                  step="0.5"
+                                  value={query.min_trip_days}
+                                  onChange={(e) =>
+                                    updateQuery(
+                                      "min_trip_days",
+                                      +e.target.value,
+                                    )
+                                  }
+                                  required
+                                />
+                              </Field>
+                              <Field label="Max days away">
+                                <input
+                                  type="number"
+                                  min="0.5"
+                                  max="30"
+                                  step="0.5"
+                                  value={query.max_trip_days}
+                                  onChange={(e) =>
+                                    updateQuery(
+                                      "max_trip_days",
+                                      +e.target.value,
+                                    )
+                                  }
+                                  required
+                                />
+                              </Field>
+                            </div>
+                            <p className="helper">
+                              Days away includes airport travel and the stay. A
+                              48-hour trip counts as 2 days.
+                            </p>
+                          </>
+                        )}
                         <details className="advanced">
                           <summary>
                             <SlidersHorizontal size={16} /> Constraints & travel
@@ -654,7 +666,8 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                           <ArrowRight size={17} />
                         </button>
                       </form>
-                      <section className="panel priorities">
+                      <details className="panel priorities">
+                        <summary>Ranking priorities</summary>
                         <div className="section-title">
                           <h2>What matters this trip</h2>
                           <Settings2 size={18} />
@@ -667,7 +680,7 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                           weights={query.weights}
                           onChange={(v) => updateQuery("weights", v)}
                         />
-                      </section>
+                      </details>
                     </aside>
                     <section className="results" aria-busy={searching}>
                       <div className="results-heading">
@@ -940,7 +953,11 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                                   {c.end_time.slice(0, 5)}
                                   {c.end_time < c.start_time ? " +1 day" : ""}
                                 </span>
-                                <small>{c.optional ? "Optional · Edit class" : "Edit class"}</small>
+                                <small>
+                                  {c.optional
+                                    ? "Optional · Edit class"
+                                    : "Edit class"}
+                                </small>
                               </button>
                             ))}
                           {!schedule.classes.some((c) => c.weekday === i) && (
@@ -973,7 +990,19 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                           }
                         />
                       </Field>
-                      <label className="optional-toggle"><input type="checkbox" checked={classDraft.optional} onChange={(e) => setClassDraft({...classDraft, optional: e.target.checked})} /> Optional class (excluded from flight conflicts)</label>
+                      <label className="optional-toggle">
+                        <input
+                          type="checkbox"
+                          checked={classDraft.optional}
+                          onChange={(e) =>
+                            setClassDraft({
+                              ...classDraft,
+                              optional: e.target.checked,
+                            })
+                          }
+                        />{" "}
+                        Optional class (excluded from flight conflicts)
+                      </label>
                       <Field label="Day of week">
                         <select
                           value={classDraft.weekday}
@@ -1061,153 +1090,159 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                       </div>
                     </form>
                     <details className="panel exception-window">
-                    <summary>One-time changes <span>Open to cancel or add a meeting</span></summary>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        void action(async () => {
-                          await api("/exceptions", "POST", {
-                            kind: exception.kind,
-                            date: exception.date,
-                            class_id:
-                              exception.kind === "cancel"
-                                ? +exception.class_id
-                                : null,
-                            title: exception.title || "Extra class",
-                            start_time:
-                              exception.kind === "add"
-                                ? exception.start_time
-                                : null,
-                            end_time:
-                              exception.kind === "add"
-                                ? exception.end_time
-                                : null,
-                          });
-                          await refreshSchedule();
-                        }, "Schedule exception added.");
-                      }}
-                    >
-                      <Field label="Change type">
-                        <select
-                          value={exception.kind}
-                          onChange={(e) =>
-                            setException({
-                              ...exception,
-                              kind: e.target.value as "cancel" | "add",
-                            })
-                          }
-                        >
-                          <option value="cancel">
-                            Cancel a class occurrence
-                          </option>
-                          <option value="add">Add an extra class</option>
-                        </select>
-                      </Field>
-                      <Field label="Exception date">
-                        <input
-                          required
-                          type="date"
-                          value={exception.date}
-                          onChange={(e) =>
-                            setException({ ...exception, date: e.target.value })
-                          }
-                        />
-                      </Field>
-                      {exception.kind === "cancel" ? (
-                        <Field label="Class to cancel">
+                      <summary>
+                        One-time changes{" "}
+                        <span>Open to cancel or add a meeting</span>
+                      </summary>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void action(async () => {
+                            await api("/exceptions", "POST", {
+                              kind: exception.kind,
+                              date: exception.date,
+                              class_id:
+                                exception.kind === "cancel"
+                                  ? +exception.class_id
+                                  : null,
+                              title: exception.title || "Extra class",
+                              start_time:
+                                exception.kind === "add"
+                                  ? exception.start_time
+                                  : null,
+                              end_time:
+                                exception.kind === "add"
+                                  ? exception.end_time
+                                  : null,
+                            });
+                            await refreshSchedule();
+                          }, "Schedule exception added.");
+                        }}
+                      >
+                        <Field label="Change type">
                           <select
-                            required
-                            value={exception.class_id}
+                            value={exception.kind}
                             onChange={(e) =>
                               setException({
                                 ...exception,
-                                class_id: e.target.value,
+                                kind: e.target.value as "cancel" | "add",
                               })
                             }
                           >
-                            <option value="">Choose class</option>
-                            {schedule.classes.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.title} · {days[c.weekday]}
-                              </option>
-                            ))}
+                            <option value="cancel">
+                              Cancel a class occurrence
+                            </option>
+                            <option value="add">Add an extra class</option>
                           </select>
                         </Field>
-                      ) : (
-                        <>
-                          <Field label="Extra class name">
-                            <input
+                        <Field label="Exception date">
+                          <input
+                            required
+                            type="date"
+                            value={exception.date}
+                            onChange={(e) =>
+                              setException({
+                                ...exception,
+                                date: e.target.value,
+                              })
+                            }
+                          />
+                        </Field>
+                        {exception.kind === "cancel" ? (
+                          <Field label="Class to cancel">
+                            <select
                               required
-                              value={exception.title}
+                              value={exception.class_id}
                               onChange={(e) =>
                                 setException({
                                   ...exception,
-                                  title: e.target.value,
+                                  class_id: e.target.value,
                                 })
                               }
-                            />
-                          </Field>
-                          <div className="field-grid">
-                            <Field label="Extra class starts">
-                              <input
-                                type="time"
-                                required
-                                value={exception.start_time}
-                                onChange={(e) =>
-                                  setException({
-                                    ...exception,
-                                    start_time: e.target.value,
-                                  })
-                                }
-                              />
-                            </Field>
-                            <Field label="Extra class ends">
-                              <input
-                                type="time"
-                                required
-                                value={exception.end_time}
-                                onChange={(e) =>
-                                  setException({
-                                    ...exception,
-                                    end_time: e.target.value,
-                                  })
-                                }
-                              />
-                            </Field>
-                          </div>
-                        </>
-                      )}
-                      <button className="button primary" disabled={busy}>
-                        Add exception
-                      </button>
-                      <div className="exception-list">
-                        {schedule.exceptions.map((e: ExceptionItem) => (
-                          <div key={e.id}>
-                            <span>
-                              <strong>
-                                {e.kind === "cancel"
-                                  ? `Cancelled: ${schedule.classes.find((c) => c.id === e.class_id)?.title || "Class"}`
-                                  : e.title}
-                              </strong>
-                              <small>{dateLabel(e.date)}</small>
-                            </span>
-                            <button
-                              type="button"
-                              aria-label={`Remove exception ${e.id}`}
-                              disabled={busy}
-                              onClick={() =>
-                                void action(async () => {
-                                  await api(`/exceptions/${e.id}`, "DELETE");
-                                  await refreshSchedule();
-                                }, "Exception removed.")
-                              }
                             >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </form>
+                              <option value="">Choose class</option>
+                              {schedule.classes.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.title} · {days[c.weekday]}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                        ) : (
+                          <>
+                            <Field label="Extra class name">
+                              <input
+                                required
+                                value={exception.title}
+                                onChange={(e) =>
+                                  setException({
+                                    ...exception,
+                                    title: e.target.value,
+                                  })
+                                }
+                              />
+                            </Field>
+                            <div className="field-grid">
+                              <Field label="Extra class starts">
+                                <input
+                                  type="time"
+                                  required
+                                  value={exception.start_time}
+                                  onChange={(e) =>
+                                    setException({
+                                      ...exception,
+                                      start_time: e.target.value,
+                                    })
+                                  }
+                                />
+                              </Field>
+                              <Field label="Extra class ends">
+                                <input
+                                  type="time"
+                                  required
+                                  value={exception.end_time}
+                                  onChange={(e) =>
+                                    setException({
+                                      ...exception,
+                                      end_time: e.target.value,
+                                    })
+                                  }
+                                />
+                              </Field>
+                            </div>
+                          </>
+                        )}
+                        <button className="button primary" disabled={busy}>
+                          Add exception
+                        </button>
+                        <div className="exception-list">
+                          {schedule.exceptions.map((e: ExceptionItem) => (
+                            <div key={e.id}>
+                              <span>
+                                <strong>
+                                  {e.kind === "cancel"
+                                    ? `Cancelled: ${schedule.classes.find((c) => c.id === e.class_id)?.title || "Class"}`
+                                    : e.title}
+                                </strong>
+                                <small>{dateLabel(e.date)}</small>
+                              </span>
+                              <button
+                                type="button"
+                                aria-label={`Remove exception ${e.id}`}
+                                disabled={busy}
+                                onClick={() =>
+                                  void action(async () => {
+                                    await api(`/exceptions/${e.id}`, "DELETE");
+                                    await refreshSchedule();
+                                  }, "Exception removed.")
+                                }
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </form>
                     </details>
                   </div>
                 </div>
@@ -1284,7 +1319,13 @@ function Planner({email, logout}: {email: string; logout: () => Promise<void>}) 
                         }
                         airports={airports}
                       />
-                      <AirportLocation airports={airports} home={draftPrefs.home_airport} onSelect={(code) => setDraftPrefs({...draftPrefs, home_airport: code})} />
+                      <AirportLocation
+                        airports={airports}
+                        home={draftPrefs.home_airport}
+                        onSelect={(code) =>
+                          setDraftPrefs({ ...draftPrefs, home_airport: code })
+                        }
+                      />
                       <div className="field-grid">
                         <Field label="Home airport transit (min)">
                           <input

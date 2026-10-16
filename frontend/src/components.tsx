@@ -60,7 +60,11 @@ export function AirportSelect({
 }) {
   return (
     <Field label={label}>
-      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
         {airports.map((a) => (
           <option value={a.code} key={a.code}>
             {a.code} · {a.name}
@@ -191,10 +195,24 @@ export function FlightCard({
           )}
         </div>
         {rank === 1 && <span className="badge">Highest ranked</span>}
-        <span className="score">
-          {item.score.toFixed(0)}
-          <small>/100 fit</small>
+      </div>
+      <div className="schedule-impact">
+        <span className={item.conflicts.length ? "conflict-tag" : "clear-tag"}>
+          {item.conflicts.length ? (
+            <AlertTriangle size={15} />
+          ) : (
+            <Check size={15} />
+          )}
+          {item.conflicts.length
+            ? `Misses ${item.conflicts.length} class${item.conflicts.length === 1 ? "" : "es"} · ${Math.round(item.conflict_minutes)} min`
+            : "No classes missed"}
         </span>
+        {item.conflicts.length > 0 && (
+          <small>
+            {[...new Set(item.conflicts.map((c) => c.title))].join(" · ")}
+          </small>
+        )}
+        <small>Includes your stay and airport travel</small>
       </div>
       <div className="card-main">
         <div className="legs">
@@ -220,16 +238,6 @@ export function FlightCard({
         </div>
       </div>
       <div className="card-bottom">
-        <span className={item.conflicts.length ? "conflict-tag" : "clear-tag"}>
-          {item.conflicts.length ? (
-            <AlertTriangle size={15} />
-          ) : (
-            <Check size={15} />
-          )}
-          {item.conflicts.length
-            ? `${item.conflicts.length} class conflict${item.conflicts.length === 1 ? "" : "s"} · ${Math.round(item.conflict_minutes)} min missed`
-            : "No class conflicts"}
-        </span>
         <span>
           <Clock size={14} /> {item.trip_days.toFixed(1)} days away
         </span>
@@ -245,6 +253,9 @@ export function FlightCard({
       {expanded && (
         <div className="flight-details">
           <h4>The tradeoffs</h4>
+          <p className="helper">
+            {item.score.toFixed(0)}/100 fit with your ranking priorities.
+          </p>
           <ul>
             {item.explanations.map((x) => (
               <li key={x}>{x}</li>

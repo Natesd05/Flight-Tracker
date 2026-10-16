@@ -1,7 +1,12 @@
 import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page, request }, info) => {
-  const response = await request.post('/api/auth/signup', {data: {email: `planner-${info.project.name}-${Date.now()}@example.com`, password: 'browser-test-password-123'}});
+  const response = await request.post("/api/auth/signup", {
+    data: {
+      email: `planner-${info.project.name}-${Date.now()}@example.com`,
+      password: "browser-test-password-123",
+    },
+  });
   expect(response.status()).toBe(201);
   await page.context().addCookies((await request.storageState()).cookies);
 });
@@ -48,6 +53,8 @@ test("student planning flow persists classes, preferences, searches and comparis
     await page
       .getByRole("button", { name: "Find flights", exact: true })
       .click();
+    await expect(page.getByLabel("Depart by", { exact: true })).toHaveCount(0);
+    await page.getByLabel("Flexible dates", { exact: true }).check();
     await page.getByLabel("Depart from", { exact: true }).fill("2026-09-11");
     await page.getByLabel("Depart by", { exact: true }).fill("2026-09-11");
     await page.getByLabel("Return from", { exact: true }).fill("2026-09-13");
@@ -137,6 +144,7 @@ test("empty results explain hard constraints and responsive layout stays within 
   await expect(
     page.getByRole("button", { name: "Find my flights" }),
   ).toBeVisible();
+  await page.getByLabel("Flexible dates", { exact: true }).check();
   await page.getByLabel("Min days away").fill("0");
   await page.getByLabel("Max days away").fill("0.5");
   await page.getByRole("button", { name: "Find my flights" }).click();
@@ -213,4 +221,34 @@ test("comparison selection is capped at three and sorting/filtering work", async
   } finally {
     for (const id of created) await request.delete(`/api/saved/${id}`);
   }
+});
+
+test("fixed dates ignore hidden flexible duration limits", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Flexible dates", { exact: true }).check();
+  await page.getByLabel("Max days away").fill("0.5");
+  await page.getByLabel("Flexible dates", { exact: true }).uncheck();
+  await page.getByLabel("Departure date", { exact: true }).fill("2026-11-06");
+  await page.getByLabel("Return date", { exact: true }).fill("2026-11-15");
+  const sent = page.waitForRequest(
+    (r) => r.url().endsWith("/api/searches") && r.method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Find my flights", exact: true })
+    .click();
+  expect((await sent).postDataJSON()).toMatchObject({
+    departure_from: "2026-11-06",
+    departure_to: "2026-11-06",
+    return_from: "2026-11-15",
+    return_to: "2026-11-15",
+    min_trip_days: 0,
+    max_trip_days: 30,
+  });
+  await page.getByLabel("Flexible dates", { exact: true }).check();
+  await expect(page.getByLabel("Depart by", { exact: true })).toHaveValue(
+    "2026-11-06",
+  );
+  await expect(page.getByLabel("Return by", { exact: true })).toHaveValue(
+    "2026-11-15",
+  );
 });
